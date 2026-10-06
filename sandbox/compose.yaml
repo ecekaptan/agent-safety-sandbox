@@ -1,0 +1,35 @@
+# Sandbox for the agent. Inspect starts one copy of this per sample.
+#
+# A custom compose file REPLACES the one Inspect would generate, including its
+# `network_mode: none`, so every restriction has to be stated here.
+# tests/test_sandbox_config.py fails if one of them is removed.
+#
+# Deliberately absent: volumes (no host directories, no Docker socket),
+# ports, and added capabilities.
+services:
+  default:
+    build:
+      context: .
+    # A tagged local image, so `make build` and Inspect share the same build
+    # and Inspect does not delete the image when it cleans up after a run.
+    image: agent-safety-sandbox:local
+    init: true
+    command: tail -f /dev/null
+
+    # Identity and location
+    user: "1000:1000"
+    working_dir: /home/agent/work
+
+    # Isolation
+    network_mode: none
+    privileged: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+    # Resource limits
+    cpus: 1.0
+    mem_limit: 512m
+    memswap_limit: 512m
+    pids_limit: 256
