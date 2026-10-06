@@ -1,0 +1,24 @@
+# Secrets: never commit these
+.env
+.env.*
+!.env.example
+
+# Inspect eval logs (can contain full model transcripts)
+logs/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
