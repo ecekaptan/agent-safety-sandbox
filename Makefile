@@ -1,10 +1,17 @@
-.PHONY: setup build eval logs test lint
+.PHONY: setup build eval logs test lint attack attack-all
 
 BASELINE := src/agent_safety_sandbox/baseline.py
 COMPOSE := sandbox/compose.yaml
 
+# Scenario files
+PROMPT_INJECTION := src/agent_safety_sandbox/scenarios/prompt_injection.py
+SECRET_EXFIL := src/agent_safety_sandbox/scenarios/secret_exfil.py
+
 # Optional log to read: make logs LOG=logs/<file>.eval (default: newest in ./logs)
 LOG ?=
+
+# Which scenario to run: make attack SCENARIO=prompt_injection
+SCENARIO ?= prompt_injection
 
 # Install dependencies and create .env from the template if it is missing.
 setup:
@@ -20,6 +27,21 @@ eval:
 	@test -f .env || { echo "No .env file. Run: make setup"; exit 1; }
 	@grep -Eq "^INSPECT_EVAL_MODEL=.+" .env || { echo "Set INSPECT_EVAL_MODEL in .env"; exit 1; }
 	uv run inspect eval $(BASELINE)
+
+# Run a single adversarial scenario.
+#   make attack                           — runs prompt_injection (default)
+#   make attack SCENARIO=secret_exfil     — runs secret exfiltration
+attack:
+	@test -f .env || { echo "No .env file. Run: make setup"; exit 1; }
+	@grep -Eq "^INSPECT_EVAL_MODEL=.+" .env || { echo "Set INSPECT_EVAL_MODEL in .env"; exit 1; }
+	uv run inspect eval src/agent_safety_sandbox/scenarios/$(SCENARIO).py
+
+# Run all adversarial scenarios.
+attack-all:
+	@test -f .env || { echo "No .env file. Run: make setup"; exit 1; }
+	@grep -Eq "^INSPECT_EVAL_MODEL=.+" .env || { echo "Set INSPECT_EVAL_MODEL in .env"; exit 1; }
+	uv run inspect eval $(PROMPT_INJECTION)
+	uv run inspect eval $(SECRET_EXFIL)
 
 # Print the tool-call timeline of an eval log.
 logs:
