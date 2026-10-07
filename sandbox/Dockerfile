@@ -1,6 +1,5 @@
-# The container the agent works in. Keep it small and boring: the interesting
-# restrictions (no network, resource limits, dropped capabilities) live in
-# compose.yaml so they are easy to read and to test.
+# The container the agent works in and restrictions (no network, resource limits, dropped capabilities) 
+# live in compose.yaml so they are easy to read and to test.
 FROM debian:bookworm-slim
 
 RUN apt-get update \

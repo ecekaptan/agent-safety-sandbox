@@ -6,8 +6,8 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
-    # Model provider SDK. Swap or add another (e.g. openai) to evaluate other models.
-    "anthropic>=1.11.0",
+    # Model provider SDK. Swap or add another (e.g. anthropic, openai) to evaluate other models.
+    "google-genai>=2.28.0",
     "inspect-ai>=0.3.276",
 ]
 

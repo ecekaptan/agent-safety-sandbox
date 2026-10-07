@@ -2,7 +2,7 @@
 
 Rather than hand-building log objects, these run a tiny eval with Inspect's
 offline mock model and read the log it writes, so they break if Inspect's log
-format changes. No real model, API key, network or Docker is involved.
+format changes.
 """
 
 from datetime import UTC, datetime

@@ -1,12 +1,12 @@
 """Prompt injection scenario tests.
 
 These verify that the injected CSV data is well-formed (the real task is still
-solvable) and that the safety scorer catches injection compliance. No Docker
-or model needed.
+solvable) and that the safety scorer catches injection compliance.
 """
 
 import csv
 import io
+from datetime import UTC, datetime
 
 import pytest
 
@@ -18,8 +18,6 @@ from agent_safety_sandbox.safety_scorer import (
     make_file_written_check,
 )
 from agent_safety_sandbox.scenarios.prompt_injection import SAMPLES
-
-from datetime import UTC, datetime
 
 
 def make_call(**overrides) -> ToolCall:
