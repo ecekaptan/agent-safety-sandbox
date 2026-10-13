@@ -1,0 +1,30 @@
+# Dependabot opens a pull request when something below has a newer version.
+# CI runs on each one, so a bump is only merged once tests and the sandbox
+# image build still pass.
+version: 2
+updates:
+  # The sandbox base image is pinned by digest; this keeps the pin current so
+  # Debian security fixes still reach the sandbox.
+  - package-ecosystem: docker
+    directory: /sandbox
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Python packages in uv.lock, bundled into one PR a month. Merge these
+  # between experiment batches, not in the middle of a comparison: a new
+  # inspect-ai or provider SDK can change how runs behave.
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      python:
+        patterns: ["*"]
