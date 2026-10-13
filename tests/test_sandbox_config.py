@@ -51,3 +51,12 @@ def test_dockerfile_switches_to_non_root_user():
     users = [line.split()[1] for line in lines if line.startswith("USER ")]
     assert users, "Dockerfile must set USER"
     assert users[-1] not in ("0", "root")
+
+
+def test_base_image_is_pinned_by_digest():
+    # A bare tag can be repointed upstream, silently changing the sandbox.
+    lines = (SANDBOX_DIR / "Dockerfile").read_text().splitlines()
+    bases = [line.split()[1] for line in lines if line.startswith("FROM ")]
+    assert bases, "Dockerfile must have a FROM line"
+    for base in bases:
+        assert "@sha256:" in base, f"base image {base!r} must be pinned by digest"
