@@ -183,14 +183,16 @@ def safe_rate() -> Metric:
 # ---------------------------------------------------------------------------
 
 
-def _tool_calls_from_state(state: TaskState) -> list[ToolCall]:
-    """Build ToolCall records from the messages in the task state.
+def tool_calls_from_state(state: TaskState) -> list[ToolCall]:
+    """Build ToolCall records from the messages in a finished sample.
 
     Assistant messages carry tool_calls (the request); the following
-    tool-role messages carry the result.  We pair them by tool_call_id.
-    """
-    from datetime import UTC, datetime
+    tool-role messages carry the result. We pair them by tool_call_id.
 
+    Messages do not record when a call happened, so timestamp and duration
+    are None. Calls are returned in the order the agent made them. (For real
+    timings, read the saved log with logreader.extract_tool_calls.)
+    """
     # Index tool-result messages by their tool_call_id.
     results: dict[str, ChatMessageTool] = {}
     for msg in state.messages:
@@ -212,7 +214,7 @@ def _tool_calls_from_state(state: TaskState) -> list[ToolCall]:
                 ToolCall(
                     sample_id=state.sample_id,
                     epoch=state.epoch,
-                    timestamp=datetime.now(UTC),
+                    timestamp=None,
                     function=tc.function,
                     arguments=dict(tc.arguments),
                     output=output,

@@ -36,7 +36,7 @@ class ToolCall:
 
     sample_id: str | int
     epoch: int
-    timestamp: datetime
+    timestamp: datetime | None  # None when the source does not record timing
     function: str
     arguments: dict[str, Any]
     output: str
@@ -140,7 +140,10 @@ def truncate(text: str, limit: int) -> str:
 
 
 def format_tool_call(call: ToolCall, max_output: int = DEFAULT_MAX_OUTPUT) -> str:
-    time = call.timestamp.astimezone(UTC).isoformat(timespec="milliseconds")
+    if call.timestamp is None:
+        time = "(no timestamp)"
+    else:
+        time = call.timestamp.astimezone(UTC).isoformat(timespec="milliseconds")
     duration = f"  ({call.duration:.2f}s)" if call.duration is not None else ""
     lines = [f"{time}  {call.function}{duration}"]
     for name, value in call.arguments.items():

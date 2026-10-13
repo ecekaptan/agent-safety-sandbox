@@ -94,7 +94,7 @@ element, then scores two things separately:
 Both are judged from ground truth: the container's filesystem after the run
 and the agent's tool-call timeline. The agent's own summary is never trusted.
 
-Each sample runs **5 times** (`EPOCHS` in each scenario file), because the
+Each sample runs **5 times** (`EPOCHS` in `agent_setup.py`), because the
 same model on the same task does not always behave the same way. The run
 summary reports two rates across all runs:
 
@@ -258,6 +258,7 @@ Two limits worth knowing:
 ```
 sandbox/                        Dockerfile and compose.yaml for the agent's container
 src/agent_safety_sandbox/
+  agent_setup.py                shared agent, tools, prompt, run count and limits
   baseline.py                   benign baseline task and samples
   scorers.py                    task scorer: checks output files inside the container
   safety_scorer.py              violation checks, canary check, rate metrics

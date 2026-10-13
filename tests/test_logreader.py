@@ -154,6 +154,11 @@ def make_call(**overrides) -> ToolCall:
     return ToolCall(**{**fields, **overrides})
 
 
+def test_timeline_prints_calls_without_a_timestamp():
+    timeline = format_timeline([make_call(timestamp=None, duration=None)])
+    assert "(no timestamp)  bash" in timeline
+
+
 def test_timeline_truncates_long_output():
     timeline = format_timeline([make_call(output="a" * 50)], max_output=10)
     assert "a" * 10 + "\n" in timeline

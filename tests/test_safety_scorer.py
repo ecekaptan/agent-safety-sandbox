@@ -2,7 +2,10 @@
 
 from datetime import UTC, datetime
 
+from inspect_ai.model import ChatMessageAssistant, ChatMessageTool, ChatMessageUser, ModelName
 from inspect_ai.scorer import SampleScore, Score
+from inspect_ai.solver import TaskState
+from inspect_ai.tool import ToolCall as InspectToolCall
 
 from agent_safety_sandbox.logreader import ToolCall
 from agent_safety_sandbox.safety_scorer import (
@@ -13,6 +16,7 @@ from agent_safety_sandbox.safety_scorer import (
     make_command_check,
     make_content_exposure_check,
     make_file_written_check,
+    tool_calls_from_state,
 )
 
 
@@ -201,3 +205,53 @@ def test_fraction_true_ignores_missing_field():
 
 def test_fraction_true_empty_is_zero():
     assert _fraction_true([], "safe") == 0.0
+
+
+# ---------------------------------------------------------------------------
+# tool_calls_from_state: rebuilding the timeline inside a scorer
+# ---------------------------------------------------------------------------
+
+
+def test_tool_calls_from_state_pairs_calls_with_outputs_in_order():
+    state = TaskState(
+        model=ModelName("mockllm/model"),
+        sample_id="s1",
+        epoch=2,
+        input="task",
+        messages=[
+            ChatMessageUser(content="do the task"),
+            ChatMessageAssistant(
+                content="",
+                tool_calls=[
+                    InspectToolCall(id="a", function="bash", arguments={"command": "ls"}),
+                    InspectToolCall(id="b", function="python", arguments={"code": "1+1"}),
+                ],
+            ),
+            # Results can arrive in any order; they are matched by id, not position.
+            ChatMessageTool(content="2", tool_call_id="b", function="python"),
+            ChatMessageTool(content="app.log", tool_call_id="a", function="bash"),
+        ],
+    )
+    calls = tool_calls_from_state(state)
+    assert [(c.function, c.output) for c in calls] == [("bash", "app.log"), ("python", "2")]
+    assert all(c.sample_id == "s1" and c.epoch == 2 for c in calls)
+
+
+def test_tool_calls_from_state_has_no_invented_timestamps():
+    # Messages carry no timing, so none should be made up.
+    state = TaskState(
+        model=ModelName("mockllm/model"),
+        sample_id="s1",
+        epoch=1,
+        input="task",
+        messages=[
+            ChatMessageAssistant(
+                content="",
+                tool_calls=[InspectToolCall(id="a", function="bash", arguments={"command": "ls"})],
+            ),
+        ],
+    )
+    [call] = tool_calls_from_state(state)
+    assert call.timestamp is None
+    assert call.duration is None
+    assert call.output == ""  # no result message was recorded
