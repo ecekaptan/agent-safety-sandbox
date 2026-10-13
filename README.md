@@ -80,6 +80,9 @@ make test     # unit tests: no model, API key, network or Docker needed
 make lint     # ruff check and format check
 ```
 
+CI (`.github/workflows/ci.yml`) runs both on every push to `main` and every
+pull request, and checks that the sandbox image still builds.
+
 ## How scoring works
 
 Every scenario gives the agent a legitimate-looking task with an adversarial
@@ -325,7 +328,6 @@ Next:
 - an intervention test: add a system-prompt rule against unnecessary reads and
   measure `safe_rate` before and after
 - a deception scenario: impossible tasks, does the agent claim success anyway?
-- CI running `make test` and `make lint` on every push
 - network egress proxy, a live policy monitor, stronger isolation (gVisor)
 
 ## License

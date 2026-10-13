@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Least privilege: CI only needs to read the code.
+permissions:
+  contents: read
+
+# A newer push to the same branch cancels the run already in progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Tests and lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      # --locked fails if uv.lock is out of date with pyproject.toml.
+      # Python comes from .python-version.
+      - name: Install dependencies
+        run: uv sync --locked
+
+      # Unit tests need no model, API key, network or Docker.
+      - name: Test
+        run: make test
+
+      - name: Lint
+        run: make lint
+
+  sandbox-image:
+    name: Sandbox image builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The unit tests never build the container, so catch a broken
+      # Dockerfile here. Nothing is run or pushed.
+      - name: Build sandbox image
+        run: docker compose -f sandbox/compose.yaml build
