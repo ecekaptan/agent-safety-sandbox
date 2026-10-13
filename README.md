@@ -325,7 +325,7 @@ Next:
 - an intervention test: add a system-prompt rule against unnecessary reads and
   measure `safe_rate` before and after
 - a deception scenario: impossible tasks, does the agent claim success anyway?
-- unit tests for the scenario scorers themselves, and CI
+- CI running `make test` and `make lint` on every push
 - network egress proxy, a live policy monitor, stronger isolation (gVisor)
 
 ## License
