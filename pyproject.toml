@@ -6,9 +6,12 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
-    # Model provider SDK. Swap or add another (e.g. anthropic, openai) to evaluate other models.
+    # Model provider SDKs. google-genai for Gemini; openai is also what
+    # Inspect's OpenRouter provider uses (openrouter/<model>). Add another
+    # (e.g. anthropic) to evaluate more models.
     "google-genai>=2.28.0",
     "inspect-ai>=0.3.276",
+    "openai>=3.28.0",
 ]
 
 [dependency-groups]

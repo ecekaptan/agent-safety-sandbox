@@ -2,10 +2,18 @@
 
     python -m agent_safety_sandbox.logreader             # newest log in ./logs
     python -m agent_safety_sandbox.logreader path/to/log.eval
+    python -m agent_safety_sandbox.logreader --reasoning  # show model reasoning
 
 This is the seed of the later monitor. Reading and printing are separate on
 purpose: `extract_tool_calls` returns plain `ToolCall` records, so a monitor
 can reuse it and replace the printing with checks.
+
+Some models (reasoning models such as DeepSeek-R1 or QwQ, via OpenRouter)
+return their chain-of-thought. When present, Inspect stores it as reasoning
+content on the assistant messages; `extract_reasoning` pulls it out. Treat it
+as another observable channel, not ground truth: a model can say one thing in
+its reasoning and do another, so reasoning is a signal to cross-check against
+behaviour, never a substitute for it.
 """
 
 import argparse
@@ -16,6 +24,7 @@ from typing import Any
 
 from inspect_ai.event import ToolEvent
 from inspect_ai.log import EvalLog, list_eval_logs, read_eval_log
+from inspect_ai.model import ChatMessageAssistant, ContentReasoning
 
 DEFAULT_LOG_DIR = "./logs"
 DEFAULT_MAX_OUTPUT = 2000
@@ -72,6 +81,46 @@ def read_tool_calls(log_file: str) -> list[ToolCall]:
     return extract_tool_calls(read_eval_log(log_file, resolve_attachments=True))
 
 
+@dataclass
+class Reasoning:
+    """One block of reasoning the model emitted before acting."""
+
+    sample_id: str | int
+    epoch: int
+    text: str
+
+
+def extract_reasoning(log: EvalLog) -> list[Reasoning]:
+    """Every reasoning block in the log, grouped by sample, in message order.
+
+    Returns an empty list when the model did not expose reasoning (most
+    non-reasoning models), so callers can treat "no reasoning" uniformly.
+    """
+    blocks = []
+    for sample in log.samples or []:
+        for message in sample.messages:
+            if not isinstance(message, ChatMessageAssistant):
+                continue
+            content = message.content
+            if not isinstance(content, list):
+                continue
+            for item in content:
+                if isinstance(item, ContentReasoning) and item.reasoning.strip():
+                    blocks.append(
+                        Reasoning(
+                            sample_id=sample.id,
+                            epoch=sample.epoch,
+                            text=item.reasoning.strip(),
+                        )
+                    )
+    return blocks
+
+
+def read_reasoning(log_file: str) -> list[Reasoning]:
+    """Read a log file from disk and return its reasoning blocks."""
+    return extract_reasoning(read_eval_log(log_file, resolve_attachments=True))
+
+
 def latest_log_file(log_dir: str = DEFAULT_LOG_DIR) -> str:
     """Path of the newest eval log in log_dir."""
     logs = list_eval_logs(log_dir)  # newest first
@@ -119,6 +168,23 @@ def format_timeline(calls: list[ToolCall], max_output: int = DEFAULT_MAX_OUTPUT)
     return "\n\n".join(blocks)
 
 
+def format_reasoning(blocks: list[Reasoning], max_output: int = DEFAULT_MAX_OUTPUT) -> str:
+    if not blocks:
+        return (
+            "No reasoning in this log. The model may not expose chain-of-thought "
+            "(most non-reasoning models), or the provider did not return it."
+        )
+    out = []
+    current_sample = None
+    for block in blocks:
+        sample = (block.sample_id, block.epoch)
+        if sample != current_sample:
+            out.append(f"=== sample {block.sample_id} (epoch {block.epoch}) ===")
+            current_sample = sample
+        out.append(indent(truncate(block.text, max_output), 2))
+    return "\n\n".join(out)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Print the tool-call timeline of an eval log.")
     parser.add_argument("log_file", nargs="?", help="Log to read (default: newest in --log-dir).")
@@ -127,7 +193,12 @@ def main(argv: list[str] | None = None) -> int:
         "--max-output",
         type=int,
         default=DEFAULT_MAX_OUTPUT,
-        help="Characters of each tool output to show.",
+        help="Characters of each tool output (or reasoning block) to show.",
+    )
+    parser.add_argument(
+        "--reasoning",
+        action="store_true",
+        help="Show the model's reasoning (chain-of-thought) instead of the tool-call timeline.",
     )
     args = parser.parse_args(argv)
 
@@ -136,6 +207,13 @@ def main(argv: list[str] | None = None) -> int:
     except FileNotFoundError as error:
         print(error, file=sys.stderr)
         return 1
+
+    if args.reasoning:
+        blocks = read_reasoning(log_file)
+        print(f"Log: {log_file}")
+        print(f"Reasoning blocks: {len(blocks)}\n")
+        print(format_reasoning(blocks, args.max_output))
+        return 0
 
     calls = read_tool_calls(log_file)
     print(f"Log: {log_file}")

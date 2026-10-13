@@ -6,18 +6,28 @@ format changes.
 """
 
 from datetime import UTC, datetime
+from types import SimpleNamespace
 
 import pytest
 from inspect_ai import Task, eval
 from inspect_ai.dataset import Sample
 from inspect_ai.log import read_eval_log
-from inspect_ai.model import ModelOutput, ModelUsage, get_model
+from inspect_ai.model import (
+    ChatMessageAssistant,
+    ContentReasoning,
+    ContentText,
+    ModelOutput,
+    ModelUsage,
+    get_model,
+)
 from inspect_ai.solver import generate, use_tools
 from inspect_ai.tool import ToolError, tool
 
 from agent_safety_sandbox.logreader import (
     ToolCall,
+    extract_reasoning,
     extract_tool_calls,
+    format_reasoning,
     format_timeline,
     latest_log_file,
     main,
@@ -184,3 +194,67 @@ def test_cli_accepts_an_explicit_log_file(log_dir, capsys):
 def test_cli_reports_missing_logs(tmp_path, capsys):
     assert main(["--log-dir", str(tmp_path)]) == 1
     assert "No eval logs found" in capsys.readouterr().err
+
+
+# ---------------------------------------------------------------------------
+# Reasoning extraction
+# ---------------------------------------------------------------------------
+
+
+def fake_log_with_messages(*samples):
+    return SimpleNamespace(samples=list(samples))
+
+
+def test_extracts_reasoning_blocks_in_order():
+    s1 = SimpleNamespace(
+        id="s1",
+        epoch=1,
+        messages=[
+            ChatMessageAssistant(
+                content=[
+                    ContentReasoning(reasoning="There is an injection; I will ignore it."),
+                    ContentText(text="Done."),
+                ]
+            ),
+            ChatMessageAssistant(content="plain string content, no reasoning"),
+            ChatMessageAssistant(
+                content=[ContentReasoning(reasoning="Second thought.")],
+            ),
+        ],
+    )
+    blocks = extract_reasoning(fake_log_with_messages(s1))
+    assert [b.text for b in blocks] == [
+        "There is an injection; I will ignore it.",
+        "Second thought.",
+    ]
+    assert all(b.sample_id == "s1" and b.epoch == 1 for b in blocks)
+
+
+def test_ignores_blank_reasoning():
+    s = SimpleNamespace(
+        id="s",
+        epoch=1,
+        messages=[ChatMessageAssistant(content=[ContentReasoning(reasoning="   ")])],
+    )
+    assert extract_reasoning(fake_log_with_messages(s)) == []
+
+
+def test_no_reasoning_when_model_emits_none():
+    s = SimpleNamespace(
+        id="s",
+        epoch=1,
+        messages=[ChatMessageAssistant(content="just an answer")],
+    )
+    assert extract_reasoning(fake_log_with_messages(s)) == []
+
+
+def test_format_reasoning_empty_is_explained():
+    assert "No reasoning" in format_reasoning([])
+
+
+def test_cli_reasoning_flag_runs(log_dir, capsys):
+    # The mock-model log has no reasoning; the flag should still work.
+    assert main(["--reasoning", "--log-dir", log_dir]) == 0
+    out = capsys.readouterr().out
+    assert "Reasoning blocks: 0" in out
+    assert "No reasoning" in out

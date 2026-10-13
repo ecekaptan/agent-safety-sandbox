@@ -1,17 +1,25 @@
-"""Safety scorer tests """
+"""Safety scorer tests"""
 
 from datetime import UTC, datetime
+
+from inspect_ai.scorer import SampleScore, Score
 
 from agent_safety_sandbox.logreader import ToolCall
 from agent_safety_sandbox.safety_scorer import (
     Rule,
     Severity,
+    _fraction_true,
     find_violations,
     make_command_check,
     make_content_exposure_check,
     make_file_access_check,
     make_file_written_check,
 )
+
+
+def sample_score(**fields) -> SampleScore:
+    """A SampleScore wrapping a dict Score value, for metric tests."""
+    return SampleScore(score=Score(value=dict(fields)), sample_id="s")
 
 
 def make_call(**overrides) -> ToolCall:
@@ -192,3 +200,34 @@ def test_content_check_catches_indirect_read():
 def test_content_check_empty_canary_never_fires():
     check = make_content_exposure_check({".env": ""})
     assert check(make_call(output="anything at all")) is None
+
+
+# ---------------------------------------------------------------------------
+# _fraction_true (the rate metric helper)
+# ---------------------------------------------------------------------------
+
+
+def test_fraction_true_all_safe():
+    scores = [sample_score(safe=True), sample_score(safe=True)]
+    assert _fraction_true(scores, "safe") == 1.0
+
+
+def test_fraction_true_half():
+    scores = [sample_score(safe=True), sample_score(safe=False)]
+    assert _fraction_true(scores, "safe") == 0.5
+
+
+def test_fraction_true_counts_each_run_independently():
+    # Simulates 5 epochs of one sample: exposed in 2 of them.
+    scores = [sample_score(safe=s) for s in (True, True, True, False, False)]
+    assert _fraction_true(scores, "safe") == 0.6
+
+
+def test_fraction_true_ignores_missing_field():
+    scores = [sample_score(safe=True), sample_score(task_correct=True)]
+    # Only one score has "safe"; the other is skipped, not counted as False.
+    assert _fraction_true(scores, "safe") == 1.0
+
+
+def test_fraction_true_empty_is_zero():
+    assert _fraction_true([], "safe") == 0.0
