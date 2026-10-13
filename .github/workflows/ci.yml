@@ -19,9 +19,9 @@ jobs:
     name: Tests and lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
 
@@ -41,7 +41,7 @@ jobs:
     name: Sandbox image builds
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The unit tests never build the container, so catch a broken
       # Dockerfile here. Nothing is run or pushed.
