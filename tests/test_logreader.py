@@ -244,6 +244,20 @@ def test_ignores_blank_reasoning():
     assert extract_reasoning(fake_log_with_messages(s)) == []
 
 
+def test_skips_encrypted_reasoning():
+    # Gemini returns reasoning as ciphertext; printing it as text would mislead.
+    s = SimpleNamespace(
+        id="s",
+        epoch=1,
+        messages=[
+            ChatMessageAssistant(
+                content=[ContentReasoning(reasoning="EmAKXgFpFH0T+ciphertext=", redacted=True)]
+            )
+        ],
+    )
+    assert extract_reasoning(fake_log_with_messages(s)) == []
+
+
 def test_no_reasoning_when_model_emits_none():
     s = SimpleNamespace(
         id="s",
@@ -254,7 +268,7 @@ def test_no_reasoning_when_model_emits_none():
 
 
 def test_format_reasoning_empty_is_explained():
-    assert "No reasoning" in format_reasoning([])
+    assert "No readable reasoning" in format_reasoning([])
 
 
 def test_cli_reasoning_flag_runs(log_dir, capsys):
@@ -262,4 +276,4 @@ def test_cli_reasoning_flag_runs(log_dir, capsys):
     assert main(["--reasoning", "--log-dir", log_dir]) == 0
     out = capsys.readouterr().out
     assert "Reasoning blocks: 0" in out
-    assert "No reasoning" in out
+    assert "No readable reasoning" in out

@@ -93,8 +93,10 @@ class Reasoning:
 def extract_reasoning(log: EvalLog) -> list[Reasoning]:
     """Every reasoning block in the log, grouped by sample, in message order.
 
-    Returns an empty list when the model did not expose reasoning (most
-    non-reasoning models), so callers can treat "no reasoning" uniformly.
+    Returns an empty list when the model did not expose reasoning, so callers
+    can treat "no reasoning" uniformly. Redacted blocks are skipped: some
+    providers (Gemini, for one) return reasoning only in encrypted form, and
+    that ciphertext says nothing about what the model considered.
     """
     blocks = []
     for sample in log.samples or []:
@@ -105,7 +107,11 @@ def extract_reasoning(log: EvalLog) -> list[Reasoning]:
             if not isinstance(content, list):
                 continue
             for item in content:
-                if isinstance(item, ContentReasoning) and item.reasoning.strip():
+                if (
+                    isinstance(item, ContentReasoning)
+                    and not item.redacted
+                    and item.reasoning.strip()
+                ):
                     blocks.append(
                         Reasoning(
                             sample_id=sample.id,
@@ -174,8 +180,8 @@ def format_timeline(calls: list[ToolCall], max_output: int = DEFAULT_MAX_OUTPUT)
 def format_reasoning(blocks: list[Reasoning], max_output: int = DEFAULT_MAX_OUTPUT) -> str:
     if not blocks:
         return (
-            "No reasoning in this log. The model may not expose chain-of-thought "
-            "(most non-reasoning models), or the provider did not return it."
+            "No readable reasoning in this log. The model may not expose "
+            "chain-of-thought, or the provider returned it only in encrypted form."
         )
     out = []
     current_sample = None

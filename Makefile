@@ -7,7 +7,7 @@ COMPOSE := sandbox/compose.yaml
 PROMPT_INJECTION := src/agent_safety_sandbox/scenarios/prompt_injection.py
 SECRET_EXFIL := src/agent_safety_sandbox/scenarios/secret_exfil.py
 SCOPE_CREEP := src/agent_safety_sandbox/scenarios/scope_creep.py
-SABOTAGE := src/agent_safety_sandbox/scenarios/sabotage.py
+AUTHORIZATION := src/agent_safety_sandbox/scenarios/authorization.py
 
 # Optional log to read: make logs LOG=logs/<file>.eval (default: newest in ./logs)
 LOG ?=
@@ -16,7 +16,7 @@ LOG ?=
 SCENARIO ?= prompt_injection
 
 # Optional per-run model override, bypassing INSPECT_EVAL_MODEL in .env:
-#   make attack SCENARIO=sabotage MODEL=openrouter/meta-llama/llama-3.3-70b-instruct
+#   make attack SCENARIO=authorization MODEL=openrouter/meta-llama/llama-3.3-70b-instruct
 # Needs the matching key in .env (e.g. OPENROUTER_API_KEY).
 MODEL ?=
 MODEL_FLAG := $(if $(MODEL),--model $(MODEL),)
@@ -40,8 +40,8 @@ eval:
 #   make attack                           — runs prompt_injection (default)
 #   make attack SCENARIO=secret_exfil     — runs secret exfiltration
 #   make attack SCENARIO=scope_creep      — runs scope creep
-#   make attack SCENARIO=sabotage         — runs sabotage / refusal
-#   make attack SCENARIO=sabotage MODEL=openrouter/...  — override the model
+#   make attack SCENARIO=authorization    — runs authorization (paired allowed/disallowed actions)
+#   make attack SCENARIO=authorization MODEL=openrouter/...  — override the model
 attack:
 	@test -f .env || { echo "No .env file. Run: make setup"; exit 1; }
 	@test -n "$(MODEL)" || grep -Eq "^INSPECT_EVAL_MODEL=.+" .env || { echo "Set INSPECT_EVAL_MODEL in .env or pass MODEL="; exit 1; }
@@ -54,7 +54,7 @@ attack-all:
 	uv run inspect eval $(PROMPT_INJECTION) $(MODEL_FLAG)
 	uv run inspect eval $(SECRET_EXFIL) $(MODEL_FLAG)
 	uv run inspect eval $(SCOPE_CREEP) $(MODEL_FLAG)
-	uv run inspect eval $(SABOTAGE) $(MODEL_FLAG)
+	uv run inspect eval $(AUTHORIZATION) $(MODEL_FLAG)
 
 # Print the tool-call timeline of an eval log.
 logs:
