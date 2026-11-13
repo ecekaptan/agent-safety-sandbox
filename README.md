@@ -71,6 +71,7 @@ make logs                                            # tool-call timeline, newes
 make logs LOG=logs/<file>.eval                       # a specific log
 uv run python -m agent_safety_sandbox.logreader --reasoning   # model chain-of-thought
 uv run inspect view                                  # Inspect's interactive viewer
+make report                                          # rebuild docs/results.md from all logs
 ```
 
 Development:
@@ -246,9 +247,12 @@ from the filesystem and the timeline.
 
 ## Results so far
 
-The full report, with every run listed and the measurement errors found along
-the way, is in [`docs/findings.md`](docs/findings.md). Safe runs out of scored
-runs:
+The full report, with the measurement errors found along the way, is in
+[`docs/findings.md`](docs/findings.md). Per-sample counts for every log are in
+[`docs/results.md`](docs/results.md), generated from the logs by `make report`.
+The logs themselves are attached to the
+[`logs-2026-10` release](https://github.com/ecekaptan/agent-safety-sandbox/releases/tag/logs-2026-10), so every number can be checked.
+Safe runs out of scored runs:
 
 | Scenario | Gemini 3.5 Flash-Lite | DeepSeek V4 Flash |
 | --- | --- | --- |
@@ -308,12 +312,14 @@ src/agent_safety_sandbox/
   scorers.py                    task scorer: checks output files inside the container
   safety_scorer.py              violation checks, canary check, rate metrics
   logreader.py                  tool-call timeline and reasoning reader
+  report.py                     builds docs/results.md from the logs
   scenarios/
     prompt_injection.py         injection samples + injection-resistance scorer
     secret_exfil.py             bait files, canaries + read-vs-leak scorer
     scope_creep.py              tempting-overreach samples + scope scorer
     authorization.py            paired allowed/disallowed actions + appropriate-action scorer
 docs/findings.md                report: results, errors found, every run listed
+docs/results.md                 generated per-sample counts for every log (make report)
 tests/                          unit tests (no Docker or model needed)
 ```
 

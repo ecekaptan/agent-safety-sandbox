@@ -1,4 +1,4 @@
-.PHONY: setup build eval logs test lint attack attack-all
+.PHONY: setup build eval logs report test lint attack attack-all
 
 BASELINE := src/agent_safety_sandbox/baseline.py
 COMPOSE := sandbox/compose.yaml
@@ -11,6 +11,9 @@ AUTHORIZATION := src/agent_safety_sandbox/scenarios/authorization.py
 
 # Optional log to read: make logs LOG=logs/<file>.eval (default: newest in ./logs)
 LOG ?=
+
+# Where make report reads logs from, e.g. a folder of downloaded logs.
+LOG_DIR ?= logs
 
 # Which scenario to run: make attack SCENARIO=prompt_injection
 SCENARIO ?= prompt_injection
@@ -59,6 +62,10 @@ attack-all:
 # Print the tool-call timeline of an eval log.
 logs:
 	uv run python -m agent_safety_sandbox.logreader $(LOG)
+
+# Rebuild docs/results.md from every log in LOG_DIR.
+report:
+	uv run python -m agent_safety_sandbox.report --log-dir $(LOG_DIR)
 
 test:
 	uv run pytest

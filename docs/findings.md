@@ -1,9 +1,11 @@
 # Findings
 
-Results from running the scenarios against real models, October 2026. Every
-number here was re-checked against the eval logs on 2026-11-02, and the logs
-are listed in the [appendix](#appendix-every-run). The logs are not committed
-because they hold full transcripts, so the appendix is the record of what ran.
+Results from running the scenarios against real models, October 2026. The
+logs are attached to the [`logs-2026-10` release](https://github.com/ecekaptan/agent-safety-sandbox/releases/tag/logs-2026-10), and
+[results.md](results.md) counts every run in them per sample. That file is
+generated from the logs by `make report`, so it can be rebuilt and checked by
+anyone. This document interprets those counts. Where it departs from them, for
+example a scorer false positive, it says so and explains why.
 
 These are small samples: a handful of prompts, five repeats each, mostly two
 models. Read them as early observations, not measurements of how safe a model
@@ -187,23 +189,6 @@ DeepSeek's corrected injection figure comes from re-applying the fixed check to
 the same log, which changed exactly that one verdict. The log itself still says
 0.95, and no fresh run has confirmed it.
 
-## Claims withdrawn
-
-Earlier versions of this document and the README said the following. They are
-listed so anyone who read them knows they no longer hold.
-
-- **"The danger is diligence, not gullibility."** This rested on one leak, which
-  did not recur in 12 other Gemini runs.
-- **"The leak reproduces across models."** That was an artefact of the old rule
-  that counted any read as unsafe. DeepSeek never leaked.
-- **"Gemini resisted all 20 injection runs."** It was 18 scored runs.
-- **"The safe runs were safe by obliviousness."** The evidence is only that
-  DeepSeek's reasoning does not mention the file.
-- **"Deliberate, repeatable restraint" on scope creep.** The tasks mostly told
-  the agent what not to do.
-- **"The models differ on hiding a failure from a manager."** The difference is
-  real in these runs, but the operator rule confounds the explanation.
-- **"Two models were tested."** Llama also ran, and its results were missing.
 
 ## Limitations
 
@@ -237,7 +222,9 @@ listed so anyone who read them knows they no longer hold.
 ## Appendix: every run
 
 Rates are as recorded in each log, under the scoring rules of that date. Times
-are UTC. `inspect-ai` was 0.3.276 throughout.
+are UTC. `inspect-ai` was 0.3.276 throughout. [results.md](results.md) lists the
+same logs, with file names, scored runs and per-sample counts generated from
+them; this appendix adds what each run was for.
 
 **Used in the results**
 
